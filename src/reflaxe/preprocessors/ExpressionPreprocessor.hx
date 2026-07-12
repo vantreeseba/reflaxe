@@ -198,10 +198,14 @@ class ExpressionPreprocessorHelper {
 
 				// Ensure the argument names don't match any class variables.
 				if(preventRepeatArguments) {
+					final argReservedNames = reservedNames.copy();
 					for(arg in data.args) {
-						if(arg.ensureNameDoesntMatch(reservedNames) && arg.tvar != null) {
+						if(arg.ensureNameDoesntMatch(argReservedNames) && arg.tvar != null) {
 							rvf.registerVarReplacement(arg.getName(), arg.tvar);
 						}
+						// Reserve this argument's final name so a later argument
+						// can't be de-shadowed into the same identifier.
+						argReservedNames.push(arg.getName());
 					}
 				}
 

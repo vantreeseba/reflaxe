@@ -16,7 +16,26 @@ class MyNativeClass:
 			"methodName": "main",
 		})
 		4 *** "Hello"
+		Log.trace(ShadowCtor.new(1, 2).sum(), {
+			"fileName": "MyClass.hx"
+			"lineNumber": 14
+			"className": "MyClass"
+			"methodName": "main",
+		})
 
 	static func testMod():
 		return 9999
+
+
+
+class ShadowCtor:
+	var input
+	var input2
+
+	func new(input22, input222):
+		self.input = input22
+		self.input2 = input222
+
+	func sum():
+		return self.input + self.input2
 
