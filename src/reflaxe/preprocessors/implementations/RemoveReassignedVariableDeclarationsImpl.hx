@@ -42,6 +42,11 @@ class RemoveReassignedVariableDeclarationsImpl {
 			final expr = exprList[i++];
 			switch(expr.expr) {
 				case TVar(tvar, e): {
+					// A variable read inside this declaration's initializer is used
+					// before any later reassignment, so its own declaration must be
+					// kept. Without this, an initializer that references a tracked
+					// var (e.g. via inlined operators) would not un-track it.
+					if(e != null) removableVars = filterRemovableVars(e, removableVars);
 					if(!isModifyingExpr(e)) {
 						removableVars.push({ tvar: tvar, index: i - 1 });
 					}
@@ -73,6 +78,11 @@ class RemoveReassignedVariableDeclarationsImpl {
 					}
 				}
 				case TBlock(el): {
+					// Variables read anywhere inside a nested block are used between
+					// an outer declaration and any later reassignment, so keep their
+					// declarations. Mirrors the `case _` handling below, which the
+					// original code skipped for blocks.
+					removableVars = filterRemovableVars(expr, removableVars);
 					final copyExpr = expr.copy();
 					copyExpr.expr = TBlock(process(el));
 					result.push(copyExpr);
