@@ -84,6 +84,11 @@ class ClassTypeHelper {
 		var remainingExprsIndex = 0;
 		final expressions: Array<TypedExpr> = [];
 		final result: Map<ClassField, TypedExpr> = [];
+
+		// Tracked by name rather than by looking in `result`: `Ref.get()` is not
+		// guaranteed to hand back the same `ClassField` instance twice, so the
+		// object-identity keys of `result` cannot be used for a membership test.
+		final claimedNames: Map<String, Bool> = [];
 		for(expr in exprList.trustMe()) {
 			remainingExprsIndex++;
 
@@ -116,7 +121,26 @@ class ClassTypeHelper {
 			if(classField == null) {
 				break;
 			}
-			
+
+			// The compiler emits exactly one of these per field, and emits them
+			// all before any user code. So a *second* assignment to a field we
+			// have already claimed is the user's own first statement, which
+			// happens to have the same shape:
+			//
+			//     public var width: Int = 0;
+			//     public function new(w: Int) { width = w; }
+			//
+			//     this.width = 0;  // compiler-generated -> claimed
+			//     this.width = w;  // user code -> must stay in the constructor
+			//
+			// Claiming it too both overwrites the recorded default and strips the
+			// assignment out of the constructor, so the field silently keeps its
+			// declared default and the argument is dropped on the floor.
+			if(claimedNames.exists(classField.name)) {
+				break;
+			}
+
+			claimedNames.set(classField.name, true);
 			expressions.push(expr);
 			result.set(classField, defaultExpr);
 		}
